@@ -1,20 +1,62 @@
 # Reproducible Research: Peer Assessment 1
-
-
 ## Loading and preprocessing the data
-
-
-
+```{r}
+act <- read.csv("activity.csv", header=TRUE)
+act$date <- as.Date(act$date)
+```
 ## What is mean total number of steps taken per day?
-
-
-
+```{r}
+days <- unique(act$date)
+steps <- sapply(days, function(x) sum(act[which(act$date == x), 1]))
+plot(days, steps, type="o", main="Total Steps per day")
+```
+```{r}
+aveSteps <- sapply(days, function(x) mean(act[which(act$date == x), 1]))
+medSteps <- sapply(days, function(x) median(act[which(act$date == x), 1]))
+head(cbind(as.character(days),aveSteps,medSteps))
+```
 ## What is the average daily activity pattern?
-
-
-
+```{r}
+intervals <- unique(act$interval)
+aveInts <- sapply(intervals,
+                  function(x) mean(act[which(act$interval == x), 1], na.rm=T))
+plot(intervals, aveInts, type="l", main="Average Steps in each time interval")
+intervals[which.max(aveInts)]
+```
 ## Imputing missing values
-
-
-
+```{r}
+length(which(is.na(act$steps)))
+actNew <- act
+actNew$steps <- sapply(1:nrow(act),
+                    function(x) if(is.na(act[x,1]))  ## to replace NAs
+                                        aveInts[which(act[x,3] == intervals)]
+                                else act[x,1])
+stepsNew <- sapply(days,
+                   function(x) sum(actNew[which(actNew$date == x), 1]))
+par(mfrow=c(2,1))
+plot(days, steps, type="o", main="With NAs")
+plot(days, stepsNew, type="o", main="with NAs Replaced")
+aveStepsNew <- sapply(days,
+                      function(x) mean(actNew[which(actNew$date == x), 1]))
+medStepsNew <- sapply(days,
+                      function(x) median(actNew[which(actNew$date == x), 1]))
+```
+first 10 rows of new average and mean and old average and mean with NAs
+```{r}
+head(cbind(aveSteps,aveStepsNew,medSteps,medStepsNew))
+```
 ## Are there differences in activity patterns between weekdays and weekends?
+i assume weekends are Sundays and Saturdays.
+```{r}
+actNew$weekend <- weekdays(act$date) %in% c("Saturday","Sunday")
+aveWeekdays <- sapply(intervals,
+                      function(x) mean(actNew[which(actNew$interval == x &
+                                              !actNew$weekend), 1]))
+aveWeekends <- sapply(intervals,
+                      function(x) mean(actNew[which(actNew$interval == x &
+                                              actNew$weekend), 1]))
+par(mfrow=c(2,1))
+plot(intervals, aveWeekdays, type="l", ylab="Average Steps", main="Weekdays")
+plot(intervals, aveWeekends, type="l", ylab="Average Steps", main="Weekends")
+```
+it seems that people walk less during week days.
